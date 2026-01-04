@@ -1,0 +1,8 @@
+- Apply CNN and LSTM models to perform action recognition and image captioning.
+- Integrate the trained models with a frontend so the application runs from the browser.
+- Expose the model via a REST API (or similar) for frontend ↔ model communication.
+- Host the application code on GitHub and ensure the frontend can be executed from the repository link.
+- Include several sample images in the repo that demonstrate action recognition and image annotation.
+- Specify the dataset used and include setup/run instructions in the repository README.
+- Submit the GitHub repository link for evaluation.
+- Be prepared to explain the full process during an interview; ask questions during lectures if needed.
