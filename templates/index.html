@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Action Recognition - UCF101</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.05);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-info.show {
+            display: flex;
+        }
+
+        .file-icon {
+            font-size: 2em;
+        }
+
+        .file-name {
+            flex: 1;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+
+        .remove-file {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .remove-file:hover {
+            background: #d32f2f;
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .predict-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .predict-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 15px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-title {
+            font-size: 1.5em;
+            color: #2e7d32;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .main-prediction {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .action-label {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .confidence-score {
+            font-size: 1.3em;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .all-predictions-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .prediction-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .prediction-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .prediction-percentage {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .error {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .error.show {
+            display: block;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .supported-formats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .supported-formats h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .format-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .format-tag {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .upload-area {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video Action Recognition</h1>
+        <p class="subtitle">Upload a video to identify the action using AI</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📹</div>
+            <div class="upload-text">Click to upload or drag and drop</div>
+            <div class="upload-hint">Support for MP4, AVI, MOV, MKV, WMV (Max 100MB)</div>
+            <input type="file" id="videoInput" accept="video/*">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <span class="file-icon">🎥</span>
+            <span class="file-name" id="fileName"></span>
+            <button class="remove-file" onclick="removeFile()">Remove</button>
+        </div>
+
+        <button class="predict-btn" id="predictBtn" onclick="predictAction()" disabled>
+            🚀 Predict Action
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Analyzing video... This may take a moment</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <div class="result-title">🎯 Prediction Results</div>
+            
+            <div class="main-prediction">
+                <div class="action-label" id="mainAction"></div>
+                <div class="confidence-score">
+                    Confidence: <span id="mainConfidence"></span>
+                </div>
+            </div>
+
+            <div class="all-predictions-title">All Predictions:</div>
+            <div id="allPredictions"></div>
+        </div>
+
+        <div class="supported-formats">
+            <h3>📋 Supported Actions:</h3>
+            <div class="format-list">
+                {% for action in action_classes %}
+                <span class="format-tag">{{ action }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const videoInput = document.getElementById('videoInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            videoInput.click();
+        });
+
+        // File selection
+        videoInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+
+            const validTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-matroska', 'video/x-ms-wmv'];
+            if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|avi|mov|mkv|wmv)$/i)) {
+                showError('Please select a valid video file (MP4, AVI, MOV, MKV, or WMV)');
+                return;
+            }
+
+            if (file.size > 100 * 1024 * 1024) {
+                showError('File size exceeds 100MB limit');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileInfo.classList.add('show');
+            predictBtn.disabled = false;
+            results.classList.remove('show');
+            error.classList.remove('show');
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            videoInput.value = '';
+            fileInfo.classList.remove('show');
+            predictBtn.disabled = true;
+            results.classList.remove('show');
+            error.classList.remove('show');
+        }
+
+        async function predictAction() {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('video', selectedFile);
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+            error.classList.remove('show');
+            predictBtn.disabled = true;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'Prediction failed');
+                }
+            } catch (err) {
+                showError('An error occurred while processing the video');
+                console.error(err);
+            } finally {
+                loading.classList.remove('show');
+                predictBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('mainAction').textContent = data.predicted_action;
+            document.getElementById('mainConfidence').textContent = 
+                (data.confidence * 100).toFixed(2) + '%';
+
+            const allPredictionsDiv = document.getElementById('allPredictions');
+            allPredictionsDiv.innerHTML = '';
+
+            data.all_predictions.forEach(pred => {
+                const percentage = (pred.confidence * 100).toFixed(2);
+                const predDiv = document.createElement('div');
+                predDiv.className = 'prediction-bar';
+                predDiv.innerHTML = `
+                    <div class="prediction-header">
+                        <span class="prediction-label">${pred.label}</span>
+                        <span class="prediction-percentage">${percentage}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                allPredictionsDiv.appendChild(predDiv);
+            });
+
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+            setTimeout(() => {
+                error.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
